@@ -9,10 +9,6 @@
 ```bash
 lsof -i :8080
 ```
-Из корневой директории выполнить следующие команды
-```bash
-lsof -i :8080
-```
 Вывод, если порт занят
 ```text
 flashie@ubuntu http-proxy % lsof -i :8080
@@ -61,6 +57,29 @@ flashie@ubuntu http-proxy % curl -v -x http://127.0.0.1:8080 http://mail.ru
 </body>
 </html>
 * Connection #0 to host 127.0.0.1 left intact
+```
+Если запросить `https`, сервер ответит ошибкой `404`.
+```bash
+flashie@ubuntu http-proxy % curl -v -x http://127.0.0.1:8080 https://mail.ru
+
+*   Trying 127.0.0.1:8080...
+* Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
+* allocate connect buffer!
+* Establish HTTP proxy tunnel to mail.ru:443
+> CONNECT mail.ru:443 HTTP/1.1
+> Host: mail.ru:443
+> User-Agent: curl/7.77.0
+> Proxy-Connection: Keep-Alive
+> 
+< HTTP/1.1 400 Bad Request
+< Date: Sat, 12 Feb 2022 12:42:37 GMT
+< Content-Length: 0
+< 
+* Received HTTP code 400 from proxy after CONNECT
+* CONNECT phase completed!
+* Closing connection 0
+curl: (56) Received HTTP code 400 from proxy after CONNECT
+
 ```
 ## Возможные ошибки
 1. Контейнер уже запущен

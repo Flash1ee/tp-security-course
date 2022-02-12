@@ -1,8 +1,20 @@
 package utils
 
-import "github.com/sirupsen/logrus"
+import (
+	"http-proxy/cfg"
 
-func GetLogger() *logrus.Logger {
-	log := logrus.New()
-	return log
+	"github.com/sirupsen/logrus"
+)
+
+func GetLogger(cfg *cfg.Config) *logrus.Logger {
+	level, err := logrus.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	logger := logrus.New()
+	logger.SetLevel(level)
+	logger.SetFormatter(&logrus.JSONFormatter{})
+
+	return logger
 }
