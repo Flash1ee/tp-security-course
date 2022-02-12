@@ -20,15 +20,9 @@ func httpClient() *http.Client {
 
 // https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
 var hopHeaders = []string{
-	"Connection",
-	"Keep-Alive",
 	"Proxy-Authenticate",
 	"Proxy-Authorization",
 	"Proxy-Connection",
-	"Te",
-	"Trailers",
-	"Transfer-Encoding",
-	"Upgrade",
 }
 
 func delHeaders(header http.Header) {

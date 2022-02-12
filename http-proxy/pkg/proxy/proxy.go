@@ -46,10 +46,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}(resp.Body)
 
 	delHeaders(resp.Header)
-	w.WriteHeader(resp.StatusCode)
-
 	copyHeader(w.Header(), resp.Header)
 
+	w.WriteHeader(resp.StatusCode)
+
+	w.Header()
 	if _, err = io.Copy(w, resp.Body); err != nil {
 		p.logger.Errorf("copy error: %v", err)
 		return
