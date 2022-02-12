@@ -19,6 +19,13 @@ func New(log *logrus.Logger) *Proxy {
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	p.logger.Infof("request info: %v\n", r)
+	if r.URL.Scheme != SCHEME_HTTP {
+		w.WriteHeader(http.StatusBadRequest)
+		p.logger.Infof("unsupported protocol scheme = %v\n", r.URL.Scheme)
+		return
+	}
+
 	client := httpClient()
 
 	delHeaders(r.Header)
@@ -28,6 +35,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		p.logger.Errorf("ServeHTTP: %v\n", err)
+		return
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -44,5 +52,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if _, err = io.Copy(w, resp.Body); err != nil {
 		p.logger.Errorf("copy error: %v", err)
+		return
 	}
 }
