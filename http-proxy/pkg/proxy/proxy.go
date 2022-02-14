@@ -33,8 +33,13 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := client.Do(r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		p.logger.Errorf("ServeHTTP: %v\n", err)
+
+		if resp.StatusCode == http.StatusNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
