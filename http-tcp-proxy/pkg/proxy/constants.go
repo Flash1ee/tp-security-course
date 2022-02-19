@@ -3,7 +3,9 @@ package proxy
 import "fmt"
 
 var (
-	responseOk  = []byte("HTTP/1.1 200 OK\r\n")
+	responseOk                    = []byte("HTTP/1.1 200 OK\r\n")
+	responseConnectionEstablished = []byte("HTTP/1.1 200 Connection established\r\n\r\n")
+
 	responseBad = []byte("HTTP/1.1 400 BadRequest\r\n")
 
 	contentType = []byte("Content-Type: text/plain\r\n")

@@ -83,10 +83,25 @@ func (s *Server) HandleConn(conn net.Conn) {
 		conn.Write([]byte(fmt.Sprintf("Http request error: %d", http.StatusBadRequest)))
 		return
 	}
+	if req.URL.Scheme != "http" || req.Method == http.MethodConnect {
+		log.Printf(fmt.Sprintf("unsupported protocol scheme = %s\n", req.URL.Scheme))
+		respond(conn, concatByteRespond(responseBad, contentType, []byte(fmt.Sprintf("unsupported protocol scheme = %s\n", req.URL.Scheme))))
+		return
+	}
 	_, err = net.LookupIP(req.Host)
 	if err != nil {
 		respond(conn, concatByteRespond(responseBad, contentType, []byte(fmt.Sprintf("Could not resolve host: %s\r\n", req.Host))))
 		return
+	}
+
+	if req.Method == http.MethodConnect {
+		if req.URL.Port() == "" {
+			req.URL.Host = fmt.Sprintf("%s:%d", req.URL.Host, 443)
+		}
+	} else {
+		if req.URL.Port() == "" {
+			req.URL.Host = fmt.Sprintf("%s:%d", req.URL.Host, 80)
+		}
 	}
 	if req.URL.Hostname() == "" {
 		respond(conn, concatByteRespond(responseOk, contentType, serverInfo))
@@ -94,13 +109,21 @@ func (s *Server) HandleConn(conn net.Conn) {
 	}
 	req.RequestURI = ""
 	log.Printf("newRequest, url: %s\n", req.URL.String())
-	remoteConn, err := net.Dial(tcp, req.URL.Host+":80")
+	remoteConn, err := net.Dial(tcp, req.URL.Host)
 	if err != nil {
 		log.Printf("dial remote fail err: %s addr: %s\n", err, req.URL.Host)
 		return
 	}
 	defer remoteConn.Close()
-
+	if req.Method == http.MethodConnect {
+		// response ok
+		_, err = conn.Write(responseConnectionEstablished)
+		if err != nil {
+			log.Printf("https resopnse 200 fail err: %s\n", err)
+			return
+		}
+		return
+	}
 	err = req.Write(remoteConn)
 	if err != nil {
 		log.Printf("remote write line fail err: %s\n", err)
