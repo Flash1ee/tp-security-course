@@ -1,11 +1,13 @@
 package proxy
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
 
 	"http-tcp-proxy/cfg"
 )
@@ -29,25 +31,42 @@ func NewServer(network string, addr string) (*Server, error) {
 
 	return s, nil
 }
-func (s *Server) Read(conn net.Conn) ([]byte, error) {
-	var err error
-	receiveData := make([]byte, 0, bufferSize)
-	data := make([]byte, 0, bufferSize)
+func (s *Server) Read(conn net.Conn) (*http.Request, error) {
+	//receiveData := make([]byte, 0, bufferSize)
+	//data := make([]byte, bufferSize)
+	req, err := http.ReadRequest(bufio.NewReader(conn))
+	return req, err
+	//if req.URL.Hostname() == "" {
+	//	respondOk(conn)
+	//}
+	//if err != nil {
+	//	log.Printf("can not read request; err = %v\n", err)
+	//	return nil, err
+	//}
+	//for err != io.EOF {
+	//	n, err := conn.Read(data)
+	//	if err != nil {
+	//		if err == io.EOF {
+	//			break
+	//		}
+	//	}
+	//	data = data[:n]
+	//	receiveData = append(receiveData, data...)
+	//}
+	//if err != nil && err != io.EOF {
+	//	log.Printf("error on read data from connection; err = %v\n", err)
+	//	return nil, err
+	//}
+	//
+	//return receiveData, nil
+}
 
-	for err != io.EOF {
-		n, err := conn.Read(data)
-		if err != nil {
-			break
-		}
-		data = data[:n]
-		receiveData = append(receiveData, data...)
+func respond(conn net.Conn, arg []byte) {
+	_, err := conn.Write(arg)
+	if err != nil {
+		log.Printf("write respond error; err: %v\n", err)
 	}
-	if err != nil && err != io.EOF {
-		log.Printf("error on read data from connection; err = %v\n", err)
-		return nil, err
-	}
-
-	return receiveData, nil
+	return
 }
 func (s *Server) HandleConn(conn net.Conn) {
 	var err error
@@ -58,17 +77,38 @@ func (s *Server) HandleConn(conn net.Conn) {
 		}
 	}(conn)
 
-	rcvData, err := s.Read(conn)
+	req, err := s.Read(conn)
 	if err != nil {
+		log.Printf(fmt.Sprintf("http.ReadRequest fail; err: %v\n", err))
+		conn.Write([]byte(fmt.Sprintf("Http request error: %d", http.StatusBadRequest)))
 		return
 	}
+	_, err = net.LookupIP(req.Host)
+	if err != nil {
+		respond(conn, concatByteRespond(responseBad, contentType, []byte(fmt.Sprintf("Could not resolve host: %s\r\n", req.Host))))
+		return
+	}
+	if req.URL.Hostname() == "" {
+		respond(conn, concatByteRespond(responseOk, contentType, serverInfo))
+		return
+	}
+	req.RequestURI = ""
+	log.Printf("newRequest, url: %s\n", req.URL.String())
+	remoteConn, err := net.Dial(tcp, req.URL.Host+":80")
+	if err != nil {
+		log.Printf("dial remote fail err: %s addr: %s\n", err, req.URL.Host)
+		return
+	}
+	defer remoteConn.Close()
 
-	reqAddr, respData := getRequestAddress(rcvData)
+	err = req.Write(remoteConn)
+	if err != nil {
+		log.Printf("remote write line fail err: %s\n", err)
+		return
+	}
+	io.Copy(conn, remoteConn)
 }
 
-func getRequestAddress(data []byte) (string, []byte) {
-
-}
 func (s *Server) Serve() {
 	defer func(listener net.Listener) {
 		err := listener.Close()
