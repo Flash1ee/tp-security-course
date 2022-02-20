@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"net/http"
 
 	"http-proxy/cfg"
 	"http-proxy/pkg/proxy"
@@ -25,8 +24,8 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	srv := proxy.New(utils.GetLogger(config))
-	if err := http.ListenAndServe(config.BindAddr, srv); err != nil {
+	srv := proxy.New(utils.GetLogger(config), config.BindAddr)
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 }
