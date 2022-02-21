@@ -1,6 +1,7 @@
 # Домашняя работа №1 по курсу "Безопасность интернет-приложений"
-## HTTP Proxy Server
-
+## Текущая версия - v2
+## v1 - HTTP Proxy Server
+## v2 - Добавлена поддержка https
 ### Выполнил: Варин Дмитрий
 
 
@@ -94,3 +95,4 @@ make: *** [docker-run] Error 125
 ```bash
 make docker-rm && make docker-start
 ```
+
