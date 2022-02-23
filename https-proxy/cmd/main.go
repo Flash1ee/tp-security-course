@@ -25,7 +25,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 	srv := proxy.New(utils.GetLogger(config), config.BindAddr)
-	if err := srv.Start(); err != nil {
+	if err := srv.Start(config); err != nil {
 		log.Fatal("srv.Start err:", err)
 	}
 }

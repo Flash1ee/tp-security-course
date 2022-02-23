@@ -82,6 +82,20 @@ flashie@ubuntu http-proxy % curl -v -x http://127.0.0.1:8080 https://mail.ru
 curl: (56) Received HTTP code 400 from proxy after CONNECT
 
 ```
+## V2 - https
+Перед запуском сервера сделать:
+```bash
+# генерация корневого сертификата
+make gen-ca
+```
+Запустить сервер
+Делать запросы следующего вида:  
+```bash
+# -k ключ для использования самоподписанного сертификата
+curl -v -k -x http://127.0.0.1:8080 https://mail.ru 
+
+
+```
 ## Возможные ошибки
 1. Контейнер уже запущен
 ```text

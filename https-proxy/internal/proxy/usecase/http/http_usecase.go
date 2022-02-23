@@ -4,36 +4,66 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+
+	"http-proxy/cfg"
 	"http-proxy/internal/proxy/client"
 )
 
+//+------+        +-----+        +-----------+
+//|client|        |proxy|        |destination|
+//+------+        +-----+        +-----------+
+//          --Req-->
+//                         --Req-->
+//                         <--Res--
+//          <--Res--
+
 type HttpUsecase struct {
-	response      http.ResponseWriter
-	proxyResponse *http.Response
+	clientResponse http.ResponseWriter
+	clientRequest  *http.Request
+	proxyResponse  *http.Response
+	proxyRequest   *http.Request
+	logger         *logrus.Logger
 }
 
-func (u *HttpUsecase) Handle(resp http.ResponseWriter, r *http.Request, req *http.Request) error {
-	u.response = resp
-	if err := u.doRequest(r, req); err != nil {
+func NewHttpUsecase(resp http.ResponseWriter, req *http.Request, _ *cfg.Config, logger *logrus.Logger) (*HttpUsecase, error) {
+	return &HttpUsecase{
+		clientResponse: resp,
+		clientRequest:  req,
+		logger:         logger,
+	}, nil
+}
+func (u *HttpUsecase) Close() {
+	u.clientRequest.Body.Close()
+	u.proxyRequest.Body.Close()
+}
+func (u *HttpUsecase) Handle() error {
+	var err error
+	u.proxyRequest, err = http.NewRequest(u.clientRequest.Method, u.clientRequest.RequestURI, u.clientRequest.Body)
+	if err != nil {
+		return err
+	}
+
+	if err = u.doRequest(); err != nil {
 		return err
 	}
 	return u.sendResponse()
 }
-func (u *HttpUsecase) doRequest(req *http.Request, proxyrReq *http.Request) error {
-	if req == nil {
+func (u *HttpUsecase) doRequest() error {
+	if u.clientRequest == nil {
 		//u.logger.Warnf("empty request - error")
 		return NilError
 	}
 	var err error
 	c := client.HttpClient()
 
-	client.PrepareRequest(proxyrReq, req)
-	proxyrReq.RequestURI = ""
-	if u.proxyResponse, err = c.Do(proxyrReq); err != nil {
+	client.PrepareRequest(u.proxyRequest, u.clientRequest)
+	u.proxyRequest.RequestURI = ""
+	if u.proxyResponse, err = c.Do(u.proxyRequest); err != nil {
 		if u.proxyResponse.StatusCode == http.StatusNotFound {
-			u.response.WriteHeader(http.StatusNotFound)
+			u.clientResponse.WriteHeader(http.StatusNotFound)
 		} else {
-			u.response.WriteHeader(http.StatusInternalServerError)
+			u.clientResponse.WriteHeader(http.StatusInternalServerError)
 		}
 		return err
 	}
@@ -41,15 +71,16 @@ func (u *HttpUsecase) doRequest(req *http.Request, proxyrReq *http.Request) erro
 
 }
 func (u *HttpUsecase) sendResponse() error {
-	if u.response == nil {
+	if u.clientResponse == nil {
 		//u.logger.Warnf("nil response - error")
 		return NilResponse
-
 	}
-	client.PrepareResponse(u.proxyResponse, u.response)
-	u.response.WriteHeader(u.proxyResponse.StatusCode)
+	defer u.proxyResponse.Body.Close()
 
-	if _, err := io.Copy(u.response, u.proxyResponse.Body); err != nil {
+	client.PrepareResponse(u.proxyResponse, u.clientResponse)
+	u.clientResponse.WriteHeader(u.proxyResponse.StatusCode)
+
+	if _, err := io.Copy(u.clientResponse, u.proxyResponse.Body); err != nil {
 		return err
 	}
 

@@ -22,3 +22,9 @@ docker-rm:
 
 clean:
 	rm -rf $(FILENAME)
+
+gen-ca:
+	sudo sh ./cert/gen_ca.sh
+
+rm-certs:
+	sudo rm -rf ./certs/

@@ -7,17 +7,22 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"http-proxy/cfg"
+	"http-proxy/internal/proxy/usecase"
 	http_usecase "http-proxy/internal/proxy/usecase/http"
+	https_usecase "http-proxy/internal/proxy/usecase/https"
 )
 
 type proxyHandler struct {
-	httpUsecase http_usecase.HttpUsecase
-	logger      *logrus.Logger
+	uc     usecase.Usecase
+	logger *logrus.Logger
+	config *cfg.Config
 }
 
-func NewProxyHandler(logger *logrus.Logger) *proxyHandler {
+func NewProxyHandler(logger *logrus.Logger, config *cfg.Config) *proxyHandler {
 	return &proxyHandler{
 		logger: logger,
+		config: config,
 	}
 }
 func (h *proxyHandler) WarnLog(format string, args ...interface{}) {
@@ -30,24 +35,27 @@ func (h *proxyHandler) InfoLog(format string, args ...interface{}) {
 	h.logger.Infof(format, args...)
 }
 func (h *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var err error
 	dump, err := httputil.DumpRequest(r, true)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
 	h.InfoLog("Request as dump: %v", string(dump))
-	w.Write([]byte("Hello, bro"))
 
-	//if r.URL.Scheme != "http" {
-	//	h.InfoLog("unsupported protocol scheme = %v\n", r.URL.Scheme)
-	//	http.Error(w, fmt.Sprintf("unsupported protocol scheme = %s\n", r.URL.Scheme), http.StatusBadRequest)
-	//	return
-	//}
-	proxyRequest, err := http.NewRequest(r.Method, r.RequestURI, r.Body)
-	if h.httpUsecase.Handle(w, r, proxyRequest) != nil {
-		h.ErrLog("httpUsecase err %v\n", err)
-		return
-
+	if r.Method == http.MethodConnect {
+		h.uc, err = https_usecase.NewHttpsUsecase(w, r, h.config, h.logger)
+	} else {
+		h.uc, err = http_usecase.NewHttpUsecase(w, r, h.config, h.logger)
 	}
+	if err != nil {
+		h.logger.Error(err)
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+	if h.uc.Handle() != nil {
+		h.ErrLog("httpUsecase err %v\n", err)
+	}
+	h.uc.Close()
 
 }
