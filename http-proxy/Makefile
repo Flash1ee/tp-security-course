@@ -4,6 +4,8 @@ FILENAME = server.out
 PORT = 8080
 
 .PHONY: build docker-build docker-run docker-stop docker-rm clean
+lint:
+	golangci-lint run -c golangci-lint.yml ./...
 
 build:
 	go build -o $(FILENAME) ./cmd/main.go
