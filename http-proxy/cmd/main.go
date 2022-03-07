@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"http-proxy/cfg"
+	"http-proxy/internal/pkg/utils/database"
 	"http-proxy/pkg/proxy"
 	"http-proxy/pkg/utils"
 
@@ -24,7 +25,13 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	srv := proxy.New(utils.GetLogger(config), config.BindAddr)
+	conn := database.NewPostgresConn(config.DatabaseURL)
+	if conn == nil {
+		logrus.Fatal("database conn is nil")
+	}
+
+	srv := proxy.New(utils.GetLogger(config), *conn, config.BindAddr)
+
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}

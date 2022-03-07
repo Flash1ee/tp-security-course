@@ -1,4 +1,4 @@
-IMAGE = http_proxy
+IMAGE = proxy-app
 CONTAINER = server
 FILENAME = server.out
 PORT = 8080
@@ -21,6 +21,12 @@ docker-stop:
 
 docker-rm:
 	docker rm -vf $(CONTAINER) || true
+
+stop:
+	docker-compose stop
+
+run:
+	docker-compose up --build --no-deps
 
 clean:
 	rm -rf $(FILENAME)

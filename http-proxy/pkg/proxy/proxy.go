@@ -9,16 +9,20 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+
+	"http-proxy/internal/pkg/utils/database"
 )
 
 type Proxy struct {
 	logger  *logrus.Logger
+	conn    database.PostgresConn
 	address string
 }
 
-func New(log *logrus.Logger, addr string) *Proxy {
+func New(log *logrus.Logger, conn database.PostgresConn, addr string) *Proxy {
 	return &Proxy{
 		logger:  log,
+		conn:    conn,
 		address: addr,
 	}
 
@@ -29,7 +33,7 @@ func (p *Proxy) ListenAndServe() error {
 		p.logger.Errorf("net.Listen fail: %v", err)
 		return err
 	}
-
+	p.logger.Infoln("server is running")
 	for {
 		conn, err := l.Accept()
 		if err != nil {

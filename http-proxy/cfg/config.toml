@@ -1,3 +1,4 @@
 log_level = "debug"
 log_path = "./logs/"
 bind_addr = ":8080"
+database_url = "host=proxy-db port=5432 user=flashie password=1111 dbname=proxy_db sslmode=disable"
