@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"http-proxy/cfg"
+	"http-proxy/internal/proxy/repository"
 	"http-proxy/internal/proxy/usecase"
 	"http-proxy/pkg/utils"
 )
@@ -36,6 +37,7 @@ type HttpsUsecase struct {
 	clientConn net.Conn
 	//
 	logger *logrus.Logger
+	repo   *repository.ProxyRepository
 }
 
 func (u *HttpsUsecase) Close() {
@@ -49,11 +51,15 @@ func (u *HttpsUsecase) Close() {
 		u.proxyRequest.Body.Close()
 	}
 }
-func NewHttpsUsecase(resp http.ResponseWriter, req *http.Request, config *cfg.Config, logger *logrus.Logger) (*HttpsUsecase, error) {
+func NewHttpsUsecase(resp http.ResponseWriter, req *http.Request, config *cfg.Config, logger *logrus.Logger, conn *utils.PostgresConn) (*HttpsUsecase, error) {
 	uc := &HttpsUsecase{
 		clientResponse: resp,
 		clientRequest:  req,
 		logger:         logger,
+		repo:           repository.NewProxyRepository(conn),
+	}
+	if conn == nil {
+		return nil, InvalidArg
 	}
 	var err error
 
@@ -128,8 +134,20 @@ func (u *HttpsUsecase) Handle() error {
 	if _, err := u.clientConn.Write(usecase.ResponseConnectionEstablished); err != nil {
 		return err
 	}
-	if err := u.getClientRequest(); err != nil {
+	reqConnect := repository.FormRequestData(u.clientRequest)
+	_, err := u.repo.InsertRequest(reqConnect)
+	if err != nil {
+		return err
+	}
+
+	if err = u.getClientRequest(); err != nil {
 		return ReadClientReqError
+	}
+
+	req := repository.FormRequestData(u.clientRequest)
+	reqID, err := u.repo.InsertRequest(req)
+	if err != nil {
+		return err
 	}
 
 	dump, err := httputil.DumpRequest(u.clientRequest, true)
@@ -137,12 +155,22 @@ func (u *HttpsUsecase) Handle() error {
 		return DumpError
 	}
 	u.logger.Infof("https client request dump: %v\n", string(dump))
-
 	if err = u.doServerRequest(); err != nil {
 		return err
 	}
+	body, err := u.sendResponse(u.proxyResponse)
+	if err != nil {
+		return err
+	}
 
-	return u.sendResponse(u.proxyResponse)
+	resp := repository.FormResponseData(u.proxyResponse, body)
+	if resp == nil {
+		return LogicError
+	}
+	if err = u.repo.InsertResponse(reqID, resp); err != nil {
+		return err
+	}
+	return nil
 }
 func (u *HttpsUsecase) getClientRequest() error {
 	var err error
@@ -159,6 +187,7 @@ func (u *HttpsUsecase) doServerRequest() error {
 		return InvalidArg
 	}
 	dump, err := httputil.DumpRequest(u.clientRequest, true)
+
 	if err != nil {
 		return err
 	}
@@ -166,16 +195,16 @@ func (u *HttpsUsecase) doServerRequest() error {
 	if _, err = u.proxyConn.Write(dump); err != nil {
 		return err
 	}
-
+	//@TODO блокируется для google.com/youtube.com
 	u.proxyResponse, err = http.ReadResponse(bufio.NewReader(u.proxyConn), u.clientRequest)
 
 	return err
 }
-func (u *HttpsUsecase) sendResponse(serverResp *http.Response) error {
+func (u *HttpsUsecase) sendResponse(serverResp *http.Response) (string, error) {
 	rawResp, err := httputil.DumpResponse(serverResp, true)
 	_, err = u.clientConn.Write(rawResp)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return string(rawResp), nil
 }

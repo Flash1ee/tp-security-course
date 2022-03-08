@@ -1,4 +1,4 @@
-IMAGE = http_proxy
+IMAGE = proxy-app
 CONTAINER = server
 FILENAME = server.out
 PORT = 8080
@@ -24,7 +24,13 @@ clean:
 	rm -rf $(FILENAME)
 
 gen-ca:
-	sudo sh ./cert/gen_ca.sh
+	sh ./cert/gen_ca.sh
 
 rm-certs:
 	sudo rm -rf ./certs/
+
+stop:
+	docker-compose stop
+
+run:
+	docker-compose up --build --no-deps

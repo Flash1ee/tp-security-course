@@ -3,11 +3,14 @@ package http_usecase
 import (
 	"io"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/sirupsen/logrus"
 
 	"http-proxy/cfg"
 	"http-proxy/internal/proxy/client"
+	"http-proxy/internal/proxy/repository"
+	"http-proxy/pkg/utils"
 )
 
 //+------+        +-----+        +-----------+
@@ -23,15 +26,22 @@ type HttpUsecase struct {
 	clientRequest  *http.Request
 	proxyResponse  *http.Response
 	proxyRequest   *http.Request
-	logger         *logrus.Logger
+	//
+	logger *logrus.Logger
+	repo   *repository.ProxyRepository
 }
 
-func NewHttpUsecase(resp http.ResponseWriter, req *http.Request, _ *cfg.Config, logger *logrus.Logger) (*HttpUsecase, error) {
-	return &HttpUsecase{
+func NewHttpUsecase(resp http.ResponseWriter, req *http.Request, _ *cfg.Config, logger *logrus.Logger, conn *utils.PostgresConn) (*HttpUsecase, error) {
+	uc := &HttpUsecase{
 		clientResponse: resp,
 		clientRequest:  req,
 		logger:         logger,
-	}, nil
+		repo:           repository.NewProxyRepository(conn),
+	}
+	if conn == nil {
+		return nil, InvalidArg
+	}
+	return uc, nil
 }
 func (u *HttpUsecase) Close() {
 	u.clientRequest.Body.Close()
@@ -43,11 +53,25 @@ func (u *HttpUsecase) Handle() error {
 	if err != nil {
 		return err
 	}
-
+	req := repository.FormRequestData(u.clientRequest)
+	reqID, err := u.repo.InsertRequest(req)
+	if err != nil {
+		return err
+	}
 	if err = u.doRequest(); err != nil {
 		return err
 	}
-	return u.sendResponse()
+
+	body, err := u.sendResponse()
+	if err != nil {
+		return err
+	}
+	resp := repository.FormResponseData(u.proxyResponse, body)
+	if resp == nil {
+		return LogicError
+	}
+
+	return u.repo.InsertResponse(reqID, resp)
 }
 func (u *HttpUsecase) doRequest() error {
 	if u.clientRequest == nil {
@@ -70,10 +94,10 @@ func (u *HttpUsecase) doRequest() error {
 	return nil
 
 }
-func (u *HttpUsecase) sendResponse() error {
+func (u *HttpUsecase) sendResponse() (string, error) {
 	if u.clientResponse == nil {
 		//u.logger.Warnf("nil response - error")
-		return NilResponse
+		return "", NilResponse
 	}
 	defer u.proxyResponse.Body.Close()
 
@@ -81,9 +105,13 @@ func (u *HttpUsecase) sendResponse() error {
 	u.clientResponse.WriteHeader(u.proxyResponse.StatusCode)
 
 	if _, err := io.Copy(u.clientResponse, u.proxyResponse.Body); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	rawResp, err := httputil.DumpResponse(u.proxyResponse, true)
+	if err != nil {
+		return "", err
+	}
+	return string(rawResp), nil
 
 }

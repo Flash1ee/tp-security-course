@@ -24,7 +24,12 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	srv := proxy.New(utils.GetLogger(config), config.BindAddr)
+	conn := utils.NewPostgresConn(config.DatabaseURL)
+	if conn == nil {
+		logrus.Fatal("database conn is nil")
+	}
+
+	srv := proxy.New(utils.GetLogger(config), conn, config.BindAddr)
 	if err := srv.Start(config); err != nil {
 		log.Fatal("srv.Start err:", err)
 	}

@@ -8,4 +8,5 @@ var (
 	LoadCertError      = errors.New("load server certificate error")
 	InvalidArg         = errors.New("invalid arg")
 	ProxyConnErr       = errors.New("invalid host")
+	LogicError         = errors.New("logic error")
 )

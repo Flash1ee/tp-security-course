@@ -8,4 +8,6 @@ EXPOSE 8080
 
 RUN make build
 
+RUN make gen-ca
+
 CMD ./server.out
