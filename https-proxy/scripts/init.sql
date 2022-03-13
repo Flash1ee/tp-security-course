@@ -5,7 +5,8 @@ create table if not exists requests(
     get_params jsonb,
     headers jsonb,
     cookies jsonb,
-    post_params jsonb
+    post_params jsonb,
+    raw text
 );
 create table if not exists responses(
     id bigserial primary key,

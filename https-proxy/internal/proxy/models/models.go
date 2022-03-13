@@ -39,10 +39,12 @@ type Request struct {
 	Headers    Map    `json:"headers"`
 	Cookies    Map    `json:"cookies"`
 	PostParams Map    `json:"post_params"`
+	Raw        string `json:"raw"`
 }
 type Response struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Headers Map    `json:"headers"`
 	Body    string `json:"body"`
+	Raw     string `json:"raw"`
 }

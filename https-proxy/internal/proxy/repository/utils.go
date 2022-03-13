@@ -7,10 +7,11 @@ import (
 	"http-proxy/internal/proxy/models"
 )
 
-func FormRequestData(r *http.Request) *models.Request {
+func FormRequestData(r *http.Request, dump []byte) *models.Request {
 	req := &models.Request{
 		Method: r.Method,
 		Path:   r.URL.Path,
+		Raw:    string(dump),
 	}
 	getParams := models.Map{}
 	for key, value := range r.URL.Query() {

@@ -96,7 +96,7 @@ func (uc *HttpsUsecase) SetupCerts(certKey string) error {
 	}
 	serverCert, err := tls.LoadX509KeyPair(curHostCert, pwd+certKey)
 	if err != nil {
-		uc.logger.Errorf(err.Error())
+		uc.logger.Errorf(err.Error(), fmt.Sprintf(" hostCert: %s certKey: %s", curHostCert, pwd+certKey))
 		return LoadCertError
 	}
 	uc.tlsConfig = &tls.Config{
@@ -134,8 +134,13 @@ func (u *HttpsUsecase) Handle() error {
 	if _, err := u.clientConn.Write(usecase.ResponseConnectionEstablished); err != nil {
 		return err
 	}
-	reqConnect := repository.FormRequestData(u.clientRequest)
-	_, err := u.repo.InsertRequest(reqConnect)
+	dump, err := httputil.DumpRequest(u.clientRequest, true)
+	if err != nil {
+		return DumpError
+	}
+
+	reqConnect := repository.FormRequestData(u.clientRequest, dump)
+	_, err = u.repo.InsertRequest(reqConnect)
 	if err != nil {
 		return err
 	}
@@ -144,16 +149,12 @@ func (u *HttpsUsecase) Handle() error {
 		return ReadClientReqError
 	}
 
-	req := repository.FormRequestData(u.clientRequest)
+	req := repository.FormRequestData(u.clientRequest, dump)
 	reqID, err := u.repo.InsertRequest(req)
 	if err != nil {
 		return err
 	}
 
-	dump, err := httputil.DumpRequest(u.clientRequest, true)
-	if err != nil {
-		return DumpError
-	}
 	u.logger.Infof("https client request dump: %v\n", string(dump))
 	if err = u.doServerRequest(); err != nil {
 		return err

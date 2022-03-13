@@ -21,7 +21,38 @@ ___go_bui 29937 flashie    3u  IPv6 0x43cb0704bad15763      0t0  TCP *:http-alt 
 kill -9 29937
 ```
 Если вывод пустой, то порт свободен.
+## Настройка https
+Для установки корневого сертификата(чтобы клиент доверял серверу) требуется сделать следующее:  
+```bash
+make gen-ca
+#linux
+make setup
+```
+Скопировать сертификат в следующую директорию:  
+```bash
+sudo cp ./cert/ca.crt /usr/local/share/ca-certificates/https-proxy/ 
+```
+Обновить сертификаты на машине:
+```bash
+# macos
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /usr/local/share/ca-certificates/https-proxy/ca.crt
+# linux
+sudo update-ca-certificates
+```
+Если нужно будет удалить:
+```bash
+# macos
+sudo security delete-certificate -c "Flash1ee CA"
+## or
+security find-certificate -c "Flash1ee CA" -a -Z | \ sudo awk '/SHA-1/{system("security delete-certificate -Z "$NF)}'
 
+# linux
+sudo update-ca-certificates
+```
+```bash
+# Список корневых сертификатов на macos
+sudo security dump-keychain /Library/Keychains/System.keychain
+```
 ## Запуск
 1. Выполнить следующие команды из корневой директории.
 ```bash

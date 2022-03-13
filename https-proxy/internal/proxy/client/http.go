@@ -4,9 +4,9 @@ import "net/http"
 
 // https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
 var hopHeaders = []string{
-	"Proxy-Authenticate",
-	"Proxy-Authorization",
-	"Proxy-Connection",
+	"Handle-Authenticate",
+	"Handle-Authorization",
+	"Handle-Connection",
 }
 
 func PrepareResponse(proxyResp *http.Response, clientResp http.ResponseWriter) {

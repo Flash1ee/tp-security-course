@@ -1,0 +1,8 @@
+log_level = "debug"
+log_path = "./logs/"
+bind_addr = ":8080"
+ssl_cert_key = "/cert/cert.key"
+scripts_path = "/cert/"
+cert_path = "/certs/"
+#database_url = "host=proxy-db port=5432 user=flashie password=1111 dbname=proxy_db sslmode=disable"
+database_url = "port=5432 user=dvvarin password=1111 dbname=proxy_db sslmode=disable"

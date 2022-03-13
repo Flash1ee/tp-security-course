@@ -15,7 +15,7 @@ import (
 )
 
 type proxyHandler struct {
-	uc     usecase.Usecase
+	uc     usecase.ProxyUsecase
 	logger *logrus.Logger
 	config *cfg.Config
 	conn   *utils.PostgresConn

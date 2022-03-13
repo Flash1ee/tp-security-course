@@ -1,4 +1,4 @@
-IMAGE = proxy-app
+IMAGE = proxy
 CONTAINER = server
 FILENAME = server.out
 PORT = 8080
@@ -34,3 +34,9 @@ stop:
 
 run:
 	docker-compose up --build --no-deps
+
+go-to-container:
+	docker exec -it https-proxy_main_1 bash
+
+setup:
+	sh ./cert/setup.sh

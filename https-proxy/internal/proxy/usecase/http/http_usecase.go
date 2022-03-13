@@ -53,7 +53,12 @@ func (u *HttpUsecase) Handle() error {
 	if err != nil {
 		return err
 	}
-	req := repository.FormRequestData(u.clientRequest)
+
+	dump, err := httputil.DumpRequest(u.clientRequest, true)
+	if err != nil {
+		return DumpError
+	}
+	req := repository.FormRequestData(u.clientRequest, dump)
 	reqID, err := u.repo.InsertRequest(req)
 	if err != nil {
 		return err
