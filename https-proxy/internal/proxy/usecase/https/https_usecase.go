@@ -116,7 +116,8 @@ func setupClientConn(resp http.ResponseWriter, cfg *tls.Config) (net.Conn, error
 	}
 
 	clientConn := tls.Server(clientTcpConn, cfg)
-	if err = clientConn.Handshake(); err != nil {
+
+	if _, err = clientConn.Write(usecase.ResponseConnectionEstablished); err != nil {
 		return nil, err
 	}
 
@@ -131,25 +132,22 @@ func setupProxyConn(req *http.Request, tlsCfg *tls.Config) (*tls.Conn, error) {
 }
 
 func (u *HttpsUsecase) Handle() error {
-	if _, err := u.clientConn.Write(usecase.ResponseConnectionEstablished); err != nil {
-		return err
-	}
 	dump, err := httputil.DumpRequest(u.clientRequest, true)
 	if err != nil {
 		return DumpError
-	}
-
-	reqConnect := repository.FormRequestData(u.clientRequest, dump)
-	_, err = u.repo.InsertRequest(reqConnect)
-	if err != nil {
-		return err
 	}
 
 	if err = u.getClientRequest(); err != nil {
 		return ReadClientReqError
 	}
 
+	dump, err = httputil.DumpRequest(u.clientRequest, true)
+	if err != nil {
+		return DumpError
+	}
+
 	req := repository.FormRequestData(u.clientRequest, dump)
+	req.IsHTTPS = true
 	reqID, err := u.repo.InsertRequest(req)
 	if err != nil {
 		return err

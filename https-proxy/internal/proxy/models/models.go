@@ -40,6 +40,7 @@ type Request struct {
 	Cookies    Map    `json:"cookies"`
 	PostParams Map    `json:"post_params"`
 	Raw        string `json:"raw"`
+	IsHTTPS    bool   `json:"is_https"`
 }
 type Response struct {
 	Code    int    `json:"code"`
@@ -47,4 +48,5 @@ type Response struct {
 	Headers Map    `json:"headers"`
 	Body    string `json:"body"`
 	Raw     string `json:"raw"`
+	IsHTTPS bool   `json:"is_https"`
 }

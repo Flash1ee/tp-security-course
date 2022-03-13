@@ -30,13 +30,7 @@ func delHeaders(header http.Header) {
 		header.Del(h)
 	}
 }
-func copyHeader(dst, src http.Header) {
-	for k, vv := range src {
-		for _, v := range vv {
-			dst.Add(k, v)
-		}
-	}
-}
+
 func concatByteRespond(args ...[]byte) []byte {
 	res := make([]byte, 0, bufferSize)
 	for _, arg := range args {

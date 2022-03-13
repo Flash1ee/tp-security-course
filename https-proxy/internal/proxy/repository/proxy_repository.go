@@ -13,10 +13,10 @@ type ProxyRepository struct {
 }
 
 const (
-	insertRequestQuery  = `INSERT INTO requests(method, path, get_params, headers, cookies, post_params, raw) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;`
+	insertRequestQuery  = `INSERT INTO requests(method, path, get_params, headers, cookies, post_params, raw, is_https) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;`
 	insertResponseQuery = `INSERT INTO responses(request_id, code, message, headers, body) VALUES($1, $2, $3, $4, $5);`
-	getAllQueries       = `SELECT id, method, path, get_params, headers, cookies, post_params, raw from requests;`
-	getRequestByID      = `SELECT id, method, path, get_params, headers, cookies, post_params, raw from requests WHERE id = $1;`
+	getAllQueries       = `SELECT id, method, path, get_params, headers, cookies, post_params, raw, is_https from requests;`
+	getRequestByID      = `SELECT id, method, path, get_params, headers, cookies, post_params, raw, is_https from requests WHERE id = $1;`
 )
 
 func NewProxyRepository(conn *utils.PostgresConn) *ProxyRepository {
@@ -26,7 +26,7 @@ func NewProxyRepository(conn *utils.PostgresConn) *ProxyRepository {
 }
 func (p *ProxyRepository) InsertRequest(req *models.Request) (int, error) {
 	id := -1
-	err := p.conn.Conn.QueryRow(context.Background(), insertRequestQuery, req.Method, req.Path, req.GetParams, req.Headers, req.Cookies, req.PostParams, req.Raw).Scan(&id)
+	err := p.conn.Conn.QueryRow(context.Background(), insertRequestQuery, req.Method, req.Path, req.GetParams, req.Headers, req.Cookies, req.PostParams, req.Raw, req.IsHTTPS).Scan(&id)
 	if err != nil {
 		return id, err
 	}
@@ -45,7 +45,7 @@ func (p *ProxyRepository) GetAllRequests() ([]models.RequestResponse, error) {
 
 	for rows.Next() {
 		req := models.RequestResponse{}
-		err = rows.Scan(&req.ID, &req.Method, &req.Path, &req.GetParams, &req.Headers, &req.Cookies, &req.PostParams, &req.Raw)
+		err = rows.Scan(&req.ID, &req.Method, &req.Path, &req.GetParams, &req.Headers, &req.Cookies, &req.PostParams, &req.Raw, &req.IsHTTPS)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +58,7 @@ func (p *ProxyRepository) GetRequestByID(id int) (*models.RequestResponse, error
 	req := &models.RequestResponse{}
 
 	err := p.conn.Conn.QueryRow(context.Background(), getRequestByID, id).
-		Scan(&req.ID, &req.Method, &req.Path, &req.GetParams, &req.Headers, &req.Cookies, &req.PostParams, &req.Raw)
+		Scan(&req.ID, &req.Method, &req.Path, &req.GetParams, &req.Headers, &req.Cookies, &req.PostParams, &req.Raw, &req.IsHTTPS)
 	if err != nil {
 		return nil, err
 	}

@@ -38,6 +38,7 @@ func (p *Proxy) Start(config *cfg.Config) error {
 
 	reqRouter.HandleFunc("/requests", historyHandler.HandleAllRequests)
 	reqRouter.HandleFunc("/request/{id:[0-9]+}", historyHandler.HandleRequestByID)
+	reqRouter.HandleFunc("/request/retry/{id:[0-9]+}", historyHandler.HandleRetryRequest)
 
 	go http.ListenAndServe(":8081", reqRouter)
 	return http.ListenAndServe(p.address, proxyHandler)

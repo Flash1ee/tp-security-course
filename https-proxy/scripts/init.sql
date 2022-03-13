@@ -1,3 +1,4 @@
+drop table requests cascade;
 create table if not exists requests(
     id bigserial primary key,
     method text,
@@ -6,7 +7,8 @@ create table if not exists requests(
     headers jsonb,
     cookies jsonb,
     post_params jsonb,
-    raw text
+    raw text,
+    is_https bool default false
 );
 create table if not exists responses(
     id bigserial primary key,
